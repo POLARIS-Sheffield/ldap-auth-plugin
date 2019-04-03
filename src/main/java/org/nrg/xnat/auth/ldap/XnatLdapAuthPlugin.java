@@ -10,7 +10,7 @@ import org.nrg.xnat.security.provider.AuthenticationProviderConfigurationLocator
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.authentication.AuthenticationProvider;
 
-@XnatPlugin(value = "xnat-ldap-auth-plugin", name = "XNAT LDAP Authentication Provider Plugin")
+@XnatPlugin(value = "xnat-ldap-auth-plugin", name = "XNAT LDAP Authentication Provider Plugin", logConfigurationFile = "xnat-ldap-auth-log4j.properties")
 @Slf4j
 public class XnatLdapAuthPlugin {
     @Bean

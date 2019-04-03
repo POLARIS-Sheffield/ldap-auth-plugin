@@ -11,8 +11,8 @@ buildscript {
     ext {
         vXnat = "1.7.6-SNAPSHOT"
         vGitPlugin = "0.12.0-rc2"
-        vLombokPlugin = "1.14"
-        vDepMgmtPlugin = "1.0.6.RELEASE"
+        vLombokPlugin = "2.1"
+        vDepMgmtPlugin = "1.0.7.RELEASE"
     }
     repositories {
         mavenLocal()
