@@ -1,7 +1,7 @@
 /*
  * xnat-ldap-auth-plugin: build.gradle
  * XNAT http://www.xnat.org
- * Copyright (c) 2018, Washington University School of Medicine
+ * Copyright (c) 2019, Washington University School of Medicine
  * All Rights Reserved
  *
  * Released under the Simplified BSD.
@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = "1.7.6-SNAPSHOT"
+        vXnat = "1.7.6"
         vGitPlugin = "0.12.0-rc2"
         vLombokPlugin = "2.1"
         vDepMgmtPlugin = "1.0.7.RELEASE"
@@ -50,7 +50,7 @@ apply plugin: "maven-publish"
 apply plugin: "xnat-data-builder"
 
 group "org.nrg.xnat.auth"
-version "1.0.1-SNAPSHOT"
+version "1.0.1"
 
 repositories {
     mavenLocal()
@@ -201,7 +201,7 @@ publishing.publications {
             def root = asNode()
             root.appendNode("name", "XNAT LDAP Authentication Plugin")
             root.appendNode("url", "https://bitbucket.org/xnatx/xnat-ldap-auth-plugin")
-            root.appendNode("inceptionYear", "2018")
+            root.appendNode("inceptionYear", "2019")
 
             def scm = root.appendNode("scm")
             scm.appendNode("url", "https://bitbucket.org/xnatx/xnat-ldap-auth-plugin")
