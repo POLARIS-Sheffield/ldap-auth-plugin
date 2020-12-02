@@ -11,7 +11,6 @@ package org.nrg.xnat.auth.ldap.provider;
 
 import com.google.common.collect.ImmutableList;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.nrg.xdat.preferences.SiteConfigPreferences;
 import org.nrg.xdat.services.XdatUserAuthService;
 import org.nrg.xnat.auth.ldap.tokens.XnatLdapUsernamePasswordAuthenticationToken;
@@ -27,6 +26,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.nrg.xdat.services.XdatUserAuthService.LDAP;
 
@@ -37,27 +37,15 @@ import static org.nrg.xdat.services.XdatUserAuthService.LDAP;
  */
 @Component
 @Slf4j
-public class XnatMulticonfigLdapAuthenticationProvider extends XnatLdapAuthenticationProvider implements XnatMulticonfigAuthenticationProvider {
+public class XnatMulticonfigLdapAuthenticationProvider implements XnatMulticonfigAuthenticationProvider {
     @Autowired
     public XnatMulticonfigLdapAuthenticationProvider(final AuthenticationProviderConfigurationLocator locator, final XdatUserAuthService userAuthService, final SiteConfigPreferences preferences) {
         this(locator.getProviderDefinitionsByAuthMethod(LDAP), userAuthService, preferences);
     }
 
     public XnatMulticonfigLdapAuthenticationProvider(final Map<String, ProviderAttributes> definitions, final XdatUserAuthService userAuthService, final SiteConfigPreferences preferences) {
-        super(getOrderedConfigurations(definitions), userAuthService, preferences);
-
-        // If there are no definitions or there's only one definition, that's handled in the superclass, so
-        // we can skip the following initialization.
-        if (definitions != null && definitions.size() > 1) {
+        if (definitions != null) {
             final List<ProviderAttributes> configurations = getOrderedConfigurations(definitions);
-
-            // We've already initialized the super class with the first ordered configuration. Now we just need to
-            // set the remaining provider properties for this instance. All of the other providers go into the map.
-            final ProviderAttributes primary           = configurations.remove(0);
-            final String             primaryProviderId = primary.getProviderId();
-
-            _providerAttributes.put(primaryProviderId, primary);
-
             for (final ProviderAttributes attributes : configurations) {
                 final String providerId = attributes.getProviderId();
                 _providerAttributes.put(providerId, attributes);
@@ -71,22 +59,31 @@ public class XnatMulticonfigLdapAuthenticationProvider extends XnatLdapAuthentic
      */
     @Override
     public Authentication authenticate(final Authentication authentication) throws AuthenticationException {
-        // Try the primary first. If we find it there and it's authenticated, then return that, our work here is done.
-        final Authentication primary = super.authenticate(authentication);
-        if (primary != null && primary.isAuthenticated()) {
-            return primary;
+        String providerId = null;
+        if (authentication instanceof XnatLdapUsernamePasswordAuthenticationToken) {
+            providerId = ((XnatLdapUsernamePasswordAuthenticationToken) authentication).getProviderId();
         }
-
-        // If we didn't find it in the primary provider, loop through the nested providers.
-        for (final String providerId : _providers.keySet()) {
-            final XnatLdapAuthenticationProvider provider  = _providers.get(providerId);
-            final Authentication                 processed = provider.authenticate(authentication);
-            if (processed != null && processed.isAuthenticated()) {
-                return processed;
+        if (providerId != null) {
+            return authenticateByProviderId(providerId, authentication);
+        } else {
+            for (final String pid : _providers.keySet()) {
+                Authentication processed = authenticateByProviderId(pid, authentication);
+                if (processed != null) {
+                    return processed;
+                }
             }
-        }
 
-        // We didn't find anything so return null.
+            // We didn't authenticate so return null.
+            return null;
+        }
+    }
+
+    private Authentication authenticateByProviderId(String providerId, Authentication authentication) {
+        final XnatLdapAuthenticationProvider provider = _providers.get(providerId);
+        final Authentication processed = provider.authenticate(authentication);
+        if (processed != null && processed.isAuthenticated()) {
+            return processed;
+        }
         return null;
     }
 
@@ -107,8 +104,51 @@ public class XnatMulticonfigLdapAuthenticationProvider extends XnatLdapAuthentic
      * {@inheritDoc}
      */
     @Override
+    public String getProviderId() {
+        return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getAuthMethod() {
+        return XdatUserAuthService.LDAP;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getName() {
+        return _providers.values().stream().map(XnatLdapAuthenticationProvider::getName)
+                .collect(Collectors.joining(", "));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isVisible() {
+        return _providers.values().stream().anyMatch(XnatLdapAuthenticationProvider::isVisible);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setVisible(boolean visible) {
+        for (XnatLdapAuthenticationProvider provider : _providers.values()) {
+            provider.setVisible(visible);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public XnatAuthenticationProvider getProvider(final String providerId) {
-        return StringUtils.equals(getProviderId(), providerId) ? this : _providers.get(providerId);
+        return _providers.get(providerId);
     }
 
     /**
@@ -150,6 +190,16 @@ public class XnatMulticonfigLdapAuthenticationProvider extends XnatLdapAuthentic
     @Override
     public void setAutoVerified(final boolean autoVerified) {
         _autoVerified = autoVerified;
+    }
+
+    @Override
+    public int getOrder() {
+        return getOrder(null);
+    }
+
+    @Override
+    public void setOrder(int order) {
+        setOrder(null, order);
     }
 
     /**
@@ -197,20 +247,11 @@ public class XnatMulticonfigLdapAuthenticationProvider extends XnatLdapAuthentic
      */
     @Override
     public XnatAuthenticationToken createToken(final String username, final String password) {
-        return new XnatLdapUsernamePasswordAuthenticationToken(username, password, getProviderId());
+        throw new RuntimeException("You must specify an LDAP provider to authenticate");
     }
 
     /**
-     * Indicates whether this provider supports the specified authentication token. The LDAP authentication provider
-     * supports tokens that implement or extend the {@link XnatLdapUsernamePasswordAuthenticationToken} class. Note
-     * that even that may not be sufficient: {@link XnatAuthenticationProvider} implementations also check the
-     * {@link XnatAuthenticationToken#getProviderId() token's provider ID} to ensure that it matches the {@link
-     * XnatAuthenticationProvider#getProviderId() provider implementation and configurations' ID}. That check is
-     * supported by the {@link #supports(Authentication)} method.
-     *
-     * @param authentication The authentication token type to test.
-     *
-     * @return Returns <b>true</b> if this provider supports the submitted token type.
+     * {@inheritDoc}
      */
     @Override
     public boolean supports(final Class<?> authentication) {
@@ -218,20 +259,13 @@ public class XnatMulticonfigLdapAuthenticationProvider extends XnatLdapAuthentic
     }
 
     /**
-     * Indicates whether this provider supports the specified authentication token. The LDAP authentication provider
-     * supports tokens that implement or extend the {@link XnatLdapUsernamePasswordAuthenticationToken} class but this
-     * method may also {@link XnatAuthenticationToken#getProviderId() token's provider ID} to ensure that it matches
-     * the {@link XnatAuthenticationProvider#getProviderId() provider implementation and configurations' ID}.
-     *
-     * @param authentication The authentication token to test.
-     *
-     * @return Returns <b>true</b> if this provider supports the submitted token.
+     * {@inheritDoc}
      */
     @Override
     public boolean supports(final Authentication authentication) {
         return supports(authentication.getClass()) &&
                authentication instanceof XnatLdapUsernamePasswordAuthenticationToken &&
-               StringUtils.equals(getProviderId(), ((XnatLdapUsernamePasswordAuthenticationToken) authentication).getProviderId());
+               _providers.containsKey(((XnatLdapUsernamePasswordAuthenticationToken) authentication).getProviderId());
     }
 
     @Override
