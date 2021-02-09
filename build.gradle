@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = "1.8.0-SNAPSHOT"
+        vXnat = "1.8.1-SNAPSHOT"
         vGitPlugin = "0.12.0-rc2"
         vLombokPlugin = "2.1"
         vDepMgmtPlugin = "1.0.7.RELEASE"
