@@ -1,4 +1,4 @@
-package org.nrg.xnat.auth.ldap.provider;
+package org.nrg.xnatx.plugins.auth.ldap.provider;
 
 import lombok.extern.slf4j.Slf4j;
 import org.nrg.xnat.security.provider.XnatAuthenticationProviderValidator;
@@ -19,7 +19,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Properties;
 
-import static org.nrg.xnat.auth.ldap.provider.XnatLdapAuthenticationProvider.*;
+import static org.nrg.xnatx.plugins.auth.ldap.provider.XnatLdapAuthenticationProvider.*;
 
 @Component
 @Slf4j

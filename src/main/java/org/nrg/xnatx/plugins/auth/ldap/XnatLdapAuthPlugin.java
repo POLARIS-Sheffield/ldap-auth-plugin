@@ -1,11 +1,11 @@
-package org.nrg.xnat.auth.ldap;
+package org.nrg.xnatx.plugins.auth.ldap;
 
 import lombok.extern.slf4j.Slf4j;
 import org.nrg.framework.annotations.XnatPlugin;
 import org.nrg.xdat.preferences.SiteConfigPreferences;
 import org.nrg.xdat.services.XdatUserAuthService;
-import org.nrg.xnat.auth.ldap.provider.XnatLdapAuthenticationProviderValidator;
-import org.nrg.xnat.auth.ldap.provider.XnatMulticonfigLdapAuthenticationProvider;
+import org.nrg.xnatx.plugins.auth.ldap.provider.XnatLdapAuthenticationProviderValidator;
+import org.nrg.xnatx.plugins.auth.ldap.provider.XnatMulticonfigLdapAuthenticationProvider;
 import org.nrg.xnat.security.provider.AuthenticationProviderConfigurationLocator;
 import org.springframework.context.annotation.Bean;
 
